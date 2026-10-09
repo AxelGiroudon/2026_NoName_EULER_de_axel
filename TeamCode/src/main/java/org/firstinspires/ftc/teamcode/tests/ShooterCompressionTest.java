@@ -18,18 +18,20 @@ import java.util.List;
 public class ShooterCompressionTest extends OpMode {
     private DcMotorEx shooterMotor;
 
+
+
     private boolean isEnabled = false;
 
     private double motorPower = 0.0;
 
-    private final double GEAR_RATIO = 1.0;
+    private final double GEAR_RATIO = 4.0/3.0;
 
     public static double KP = 0.0;
     public static double KI = 0.0;
     public static double KD = 0.0;
 
-    public static double KV = 0.0;
-    public static double KS = 0.0;
+    public static double KV = 1.86e-4;
+    public static double KS = 0.008;
 
     public static double speedTarget = 5000; //in rpm
 
@@ -37,7 +39,7 @@ public class ShooterCompressionTest extends OpMode {
 
     private FeedForwardModel FeedForwardController;
 
-    private List<LynxModule> sensors = hardwareMap.getAll(LynxModule.class);
+    private List<LynxModule> sensors;
 
     private VoltageSensor voltageSensor;
 
@@ -54,6 +56,8 @@ public class ShooterCompressionTest extends OpMode {
 
         PidController = new PidRBL(KP,KI,KD);
         FeedForwardController = new FeedForwardModel(KS,KV,0.0);
+
+        sensors = hardwareMap.getAll(LynxModule.class);
 
         for (LynxModule module : sensors)
         {
@@ -76,10 +80,11 @@ public class ShooterCompressionTest extends OpMode {
 
         motorPower = 0.0;
 
+        double FFOutput = FeedForwardController.calculate(speedTarget);
+        double PIDCorrection = PidController.calculate(speedTarget, motorVelocity);
+
         if (isEnabled)
         {
-            double FFOutput = FeedForwardController.calculate(speedTarget);
-            double PIDCorrection = PidController.calculate(speedTarget, motorVelocity);
             motorPower = FFOutput + PIDCorrection;
         }
 
@@ -94,11 +99,17 @@ public class ShooterCompressionTest extends OpMode {
             FeedForwardController.setGains(KS,KV,0.0);
         }
 
+        if (gamepad1.a)
+        {
+            motorPower = 1.0;
+        }
+
         motorPower = motorPower*batteryVoltage/11.5;
         shooterMotor.setPower(motorPower);
 
         telemetry.addData("motor speed (rpm)", motorVelocity);
         telemetry.addData("flywheel speed (rpm)", flywheelVelocity);
+        telemetry.addData("feedforwardOutputs", FFOutput);
         telemetry.update();
     }
 }
