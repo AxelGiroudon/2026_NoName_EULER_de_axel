@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.tests;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @TeleOp
+@Config
 public class ShooterTest extends OpMode {
 
     private enum BallType
@@ -40,12 +42,14 @@ public class ShooterTest extends OpMode {
 
     private DcMotor feederMotor;
     private double feederPower = 0.0;
+    private double lastTime = 0.0;
 
-
-    private Servo jspCommentTappeler;
-    private final double pollenPos = 0.5;
-    private final double nectarPos = 1.0;
-
+    private Servo jspCommentTappeler, lePoteDeLautre; //left, right
+    private final double leftPollenPos = 0.45, leftNectarPos = 0.75;
+    private final double rightPollenPos = 0.55, rightNectarPos = 0.25;
+    private Servo hood;
+    private double hoodPos;
+    private double hoodHighLimit = 1.0, hoodLowLimit = 0.0;
 
     private List<LynxModule> sensors;
     private DigitalChannel LowIR, HighIR;
@@ -60,7 +64,7 @@ public class ShooterTest extends OpMode {
         shooterMotor = hardwareMap.get(DcMotor.class,"shooterMotor");
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterMotor.setDirection(DcMotor.Direction.FORWARD);
+        shooterMotor.setDirection(DcMotor.Direction.REVERSE);
 
         feederMotor = hardwareMap.get(DcMotor.class,"feederMotor");
         feederMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -74,6 +78,8 @@ public class ShooterTest extends OpMode {
         HighIR.setMode(DigitalChannel.Mode.INPUT);
 
         jspCommentTappeler = hardwareMap.get(Servo.class, "trucDuShooter");
+        lePoteDeLautre = hardwareMap.get(Servo.class, "machinDuShooter");
+        hood = hardwareMap.get(Servo.class, "hood");
 
         sensors = hardwareMap.getAll(LynxModule.class);
 
@@ -86,8 +92,8 @@ public class ShooterTest extends OpMode {
     @Override
     public void loop()
     {
-        UpdateSensors();
 
+        UpdateSensors();
         shooterPower = (gamepad1.right_trigger - gamepad1.left_trigger)*0.7;
         feederPower = gamepad1.right_trigger - gamepad1.left_trigger;
 
@@ -95,22 +101,49 @@ public class ShooterTest extends OpMode {
         {
             if(inputs.balls.get(0) == BallType.POLLEN)
             {
-                jspCommentTappeler.setPosition(pollenPos);
+                jspCommentTappeler.setPosition(leftPollenPos);
+                lePoteDeLautre.setPosition(rightPollenPos);
             }
             else
             {
-                jspCommentTappeler.setPosition(nectarPos);
+                jspCommentTappeler.setPosition(leftNectarPos);
+                lePoteDeLautre.setPosition(rightNectarPos);
             }
+        }
+
+        if(gamepad1.triangle)
+        {
+            hoodPos += 0.1;
+        }
+        else if (gamepad1.square)
+        {
+            hoodPos -= 0.1;
+        }
+
+        if (gamepad1.circle || hoodPos < hoodLowLimit)
+        {
+            hoodPos = hoodLowLimit;
+        }
+        else if (gamepad1.cross || hoodPos > hoodHighLimit)
+        {
+            hoodPos = hoodHighLimit;
         }
 
         shooterMotor.setPower(shooterPower);
         feederMotor.setPower(feederPower);
 
+        hood.setPosition(hoodPos);
+
+        double now = System.nanoTime()*1e-9;
+        double loopTime = now - lastTime;
+
         telemetry.addData("Balls", inputs.balls.toString());
         telemetry.addData("LowIRBreaker", LowIR.getState());
         telemetry.addData("HighIRBreaker", inputs.HighIRTriggered);
         telemetry.addData("LimitSwitch", inputs.LimitSwitchTriggered);
+        telemetry.addData("loopTime", loopTime);
         telemetry.update();
+        lastTime = now;
     }
 
     public void UpdateSensors()

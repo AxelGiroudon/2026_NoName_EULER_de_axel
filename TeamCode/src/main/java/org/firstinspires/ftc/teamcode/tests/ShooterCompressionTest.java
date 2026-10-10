@@ -33,7 +33,7 @@ public class ShooterCompressionTest extends OpMode {
     public static double KV = 1.86e-4;
     public static double KS = 0.008;
 
-    public static double speedTarget = 5000; //in rpm
+    public static double speedTarget = 1000; //in rpm
 
     private PidRBL PidController;
 
