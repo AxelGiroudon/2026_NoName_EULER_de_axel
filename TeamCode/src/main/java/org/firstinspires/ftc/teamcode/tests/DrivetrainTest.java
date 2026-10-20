@@ -64,7 +64,7 @@ public class DrivetrainTest extends OpMode {
         {
             double temp = XPower;
             XPower = Math.cos(robotPos.headingRadians)*XPower-Math.sin(robotPos.headingRadians)*YPower;
-            YPower = Math.sin(robotPos.headingRadians)*temp-Math.cos(robotPos.headingRadians)*YPower;
+            YPower = Math.sin(robotPos.headingRadians)*temp+Math.cos(robotPos.headingRadians)*YPower;
         }
 
         leftBackPower = XPower + YPower - RotationPower;
